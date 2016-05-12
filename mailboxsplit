@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+############################################################
+# mailboxsplit
+#
+# Script which extracts all mutt mailbox definitions for one
+# account form one mailbox file and put it into another.
+#
+# License: GPLv3
+#
+# (c) Till Smejkal - till.smejkal+mutttools@ossmail.de
+############################################################
+
+# Helper functions
+function usage() {
+cat << EOF
+mailboxsplit [OPTIONS] ACCOUNT IN OUT
+
+Script to extract all mutt mailbox definitions from the input
+file and save them in the output file for the given account.
+
+Options:
+    --help
+    -h      Print this help message.
+
+ACCOUNT     The name of the mail account.
+IN          The input file.
+OUT         The output file.
+EOF
+}
+
+# Main
+if [[ "$1" == "-h" || "$1"  == "--help" ]]; then
+    usage
+    exit 0
+elif [ $# -ne 3 ]; then
+    echo -en "3 arguments expected, $# given.\n\n"
+    usage
+    exit 1
+fi
+
+# Extract arguments
+_account=$1
+eval _in_file=$2
+eval _out_file=$3
+
+if [ ! -f ${_in_file} ]; then
+    echo "${_in_file} must exist and be readable."
+    exit 1
+fi
+
+if [ ! -e ${_out_file} ]; then
+    touch ${_out_file}
+elif [ ! -w ${_out_file} ]; then
+    echo "${_out_file} must exist and be writable."
+    exit 1
+fi
+
+if [ -e ${_out_file}.in ]; then
+    cat ${_out_file}.in > ${_out_file}
+else
+    # First add the base mailbox
+    echo "mailboxes \"+${_account}\"" > ${_out_file}
+fi
+
+# Add all the other mailboxes
+cat ${_in_file} \
+    | sed 's/" /"\n/g' \
+    | grep ${_account} \
+    | sed 's/.*\(".*"\)/mailboxes \1/' \
+    | sed "s/${_account}_lists/${_account}/" \
+    >> ${_out_file}

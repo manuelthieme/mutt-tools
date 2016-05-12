@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+############################################################
+# mutt_profile
+#
+# Start mutt with the proper profile and account settings.
+#
+# License: GPLv3
+#
+# (c) Till Smejkal - till.smejkal+mutttools@ossmail.de
+############################################################
+
+# Global variables
+CONFIG_DIR=${HOME}/.config/mutt
+TEMP_DIR=${XDG_RUNTIME_DIR}/mutt/profiles
+
+# Helper functions
+function usage() {
+cat << EOF
+mutt_profile [OPTIONS] PROFILE ACCOUNT [MUTT_OPTIONS]
+
+Start mutt with special profile and account settings.
+
+Options:
+    --help
+    -h      Print this help message.
+
+PROFILE     The profile which should be loaded for mutt.
+ACCOUNT     The account which should be loaded for mutt.
+MUTT_OPTIONS    Further options which should be passed
+                to mutt.
+EOF
+}
+
+# Main
+if [[ "$1" == "-h" || "$1"  == "--help" ]]; then
+    usage
+    exit 0
+elif [ $# -lt 2 ]; then
+    echo -en "2 argument expected, $# given.\n\n"
+    usage
+    exit 1
+fi
+
+# Extract arguments
+_profile=$1
+_account=$2
+shift 2
+
+if [[ ! -e ${CONFIG_DIR}/${_profile}rc ]]; then
+    echo "No configuration for $_profile exists!"
+    exit 2
+fi
+
+# Create temporary copy of the mutt configuration file.
+mkdir -p ${TEMP_DIR}
+_config=$(mktemp -p ${TEMP_DIR})
+cp ${CONFIG_DIR}/${_profile}rc ${_config}
+
+# Post process the configuration file.
+sed -i "s/<profile>/${_profile}/g" ${_config}
+sed -i "s/<account>/${_account}/g" ${_config}
+
+# Set a proper terminal title.
+echo -e "\033]2;Mutt $_profile - $_account\007"
+
+mutt -F ${_config} $@
+rm -f ${_config}

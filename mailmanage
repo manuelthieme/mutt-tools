@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+############################################################
+# mailmanage
+#
+# Script which will delete mails from folders with mailing 
+# lists so that mutt has less work to do.
+#
+# License: GPLv3
+#
+# (c) Till Smejkal - till.smejkal+mutttools@ossmail.de
+############################################################
+
+# Global variables
+CONFIG_DIR=$HOME/.config/mutt
+
+# Helper functions
+function usage() {
+cat << EOF
+mailmanage [OPTIONS] ACCOUNT
+
+Script which will delete mails from the mailing lists of the given
+account so that mutt has less work to do.
+
+Options:
+    --help
+    -h      Print this help message.
+
+ACCOUNT     The name of the mail account.
+EOF
+}
+
+# Main
+if [[ "$1" == "-h" || "$1"  == "--help" ]]; then
+    usage
+    exit 0
+elif [ $# -ne 1 ]; then
+    echo -en "1 argument expected, $# given.\n\n"
+    usage
+    exit 1
+fi
+
+_account=$1
+_file_name="mailinglists"
+
+_account_dir=${CONFIG_DIR}/${_account}
+_file="${_account_dir}/${_file_name}"
+
+if [[ ! -d $_account_dir ]]; then
+    echo "The account ${_account} does not seem to exist."
+    exit 2
+elif [[ ! -e $_file ]]; then
+    echo "The account ${_account} does not seem to have mailing lists configured."
+    exit 2
+else
+    while read mailbox days; do
+        mailmanage delete -k $days $_accountName $mailbox
+    done < $_file
+fi
