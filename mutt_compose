@@ -48,7 +48,7 @@ _mail=$2
 
 _title=$(cat ${_mail} | grep "Subject:" | sed "s/[A-Za-z]*:[ ]*//")
 
-# Create temporary copy of the mail.
+# Create a temporary copy of the mail.
 mkdir -p ${TEMP_DIR}
 _tmp_mail=$(mktemp -p ${TEMP_DIR})
 cp ${_mail} ${_tmp_mail}

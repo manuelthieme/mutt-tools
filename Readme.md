@@ -11,26 +11,31 @@ normal reading or composing of mails. Accordingly, I have a relatively complex
 directory structure to configure my Mutt, which looks as follows:
 
     mutt
-     |-> mode1rc
-     |-> mode2rc
-     |-> account1
-     |    |->     general
-     |    |->     mailboxes
-     |-> account2
-     |    |->     general
-     |    |->     mailboxes
-     |    |->     mailinglists
+     |-> config
+     |-> profiles
+     |    |->     profile1
+     |    |->     profile2
+     |-> accounts
+     |    |->     account1
+     |    |        |-> general
+     |    |        |-> mailboxes
+     |    |->     account2
+     |    |        |-> general
+     |    |        |-> mailboxes
+     |    |        |-> maillintlists
      |-> common
           |->     general
           |->     colors
           |->     keybindings
 
-The mode{1,2}rc files contain the mode depending settings and load additional files
-from the common directory. In addition they also load account depending settings if
-they require them.
+The files in the profile directory contain the mode depending settings and load
+additional files from the common directory. The files in the account
+directories contain the corresponding settings for the account such as mail
+address, signature, and headers. The config file in the base directory sets up the
+directories and then loads the mode and account settings.
 
-The `mutt_profile` script selects and constructs the configuration files and then
-starts Mutt with the correct settings.
+The `mutt_profile` script adapts the main configuration file and then starts
+Mutt with the correct settings.
 
 
 ## mutt_compose
@@ -58,7 +63,7 @@ simple renaming so that Mutt properly understands them.
 
 `mailmanage` is a script which can automatically remove mails from a maildir which are older
 than a specified number of days. I use this script to keep my maildirs which contain mails from
-mailinglists small so that Mutt can open them as fast as possible.
+mailing lists small so that Mutt can open them as fast as possible.
 
-The script is based on [mmanage](https://github.com/l3nkz/mmanage "mmanage"), a python tool designed
+The script uses [mmanage](https://github.com/l3nkz/mail-tools "mail-tools"), a python tool designed
 to perform archiving or cleaning operations on maildirs.

@@ -47,15 +47,20 @@ _profile=$1
 _account=$2
 shift 2
 
-if [[ ! -e ${CONFIG_DIR}/${_profile}rc ]]; then
-    echo "No configuration for $_profile exists!"
+if [[ ! -e ${CONFIG_DIR}/profiles/$_profile ]]; then
+    echo "There is non such profile $_profile!"
+    exit 2
+fi
+
+if [[ ! -d ${CONFIG_DIR}/accounts/$_account ]]; then
+    echo "There is non such account $_account!"
     exit 2
 fi
 
 # Create temporary copy of the mutt configuration file.
 mkdir -p ${TEMP_DIR}
 _config=$(mktemp -p ${TEMP_DIR})
-cp ${CONFIG_DIR}/${_profile}rc ${_config}
+cp ${CONFIG_DIR}/config ${_config}
 
 # Post process the configuration file.
 sed -i "s/<profile>/${_profile}/g" ${_config}

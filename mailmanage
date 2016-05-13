@@ -43,7 +43,7 @@ fi
 _account=$1
 _file_name="mailinglists"
 
-_account_dir=${CONFIG_DIR}/${_account}
+_account_dir=${CONFIG_DIR}/accounts/${_account}
 _file="${_account_dir}/${_file_name}"
 
 if [[ ! -d $_account_dir ]]; then
