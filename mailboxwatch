@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+############################################################
+# mailboxwatch
+#
+# This script continuously watches the mailboxes file created
+# by offlineimap and runs mailboxsplit if the file changes, so
+# that the mailboxes files of the accounts are always up to 
+# date.
+#
+# License: GPLv3
+#
+# (c) Till Smejkal - till.smejkal+mutttools@ossmail.de
+############################################################
+
+# Global variables
+CONFIG_DIR=${HOME}/.config/mutt
+
+# Helper functions
+function usage {
+    cat << EOF
+mailboxwatch [OPTIONS]
+
+Continuously update the per account 'mailboxes' files if the
+global file changes.
+
+Options:
+    --help
+    -h      Print this help message.
+EOF
+}
+
+# Main
+if [[ $1 == "-h" || $1 == "--help" ]]; then
+    usage
+    exit 0
+fi
+
+_mailbox_file=${CONFIG_DIR}/mailboxes
+
+while true; do
+    # Wait for the file to be changed.
+    inotifywait -e modify -e create -e close_write -qq $_mailbox_file >/dev/null
+
+    if [[ $? -eq 0 ]]; then
+        echo "File change detected."
+    else
+        echo "Error while waiting for file change."
+        exit 1;
+    fi
+
+    # Forward the changes to the individual accounts.
+    for _account_dir in ${CONFIG_DIR}/accounts/*; do
+        if [[ -d $_account_dir ]]; then
+            _account_name=$(basename $_account_dir)
+            echo "Update mailboxes for $_account_name"
+
+            mailboxsplit $_account_name $_mailbox_file ${_account_dir}/mailboxes
+        fi
+    done
+done
