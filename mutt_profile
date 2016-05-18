@@ -25,6 +25,9 @@ Options:
     --help
     -h      Print this help message.
 
+    --no-title
+    -t      Do not update the title of the terminal.
+
 PROFILE     The profile which should be loaded for mutt.
 ACCOUNT     The account which should be loaded for mutt.
 MUTT_OPTIONS    Further options which should be passed
@@ -43,6 +46,13 @@ elif [ $# -lt 2 ]; then
 fi
 
 # Extract arguments
+_no_title=false
+
+if [[ "$1" == "-t" || "$1" == "--no-title" ]]; then
+    _no_title=true
+    shift
+fi
+
 _profile=$1
 _account=$2
 shift 2
@@ -67,7 +77,9 @@ sed -i "s/<profile>/${_profile}/g" ${_config}
 sed -i "s/<account>/${_account}/g" ${_config}
 
 # Set a proper terminal title.
-echo -e "\033]2;Mutt $_profile - $_account\007"
+if [[ $_no_title == false ]]; then
+    echo -e "\033]2;Mutt $_profile - $_account\007"
+fi
 
 mutt -F ${_config} $@
 rm -f ${_config}
