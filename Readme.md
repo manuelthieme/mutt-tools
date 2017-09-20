@@ -22,7 +22,7 @@ directory structure to configure my Mutt, which looks as follows:
      |    |->     account2
      |    |        |-> general
      |    |        |-> mailboxes
-     |    |        |-> maillintlists
+     |    |        |-> maillinglists
      |-> common
           |->     general
           |->     colors
