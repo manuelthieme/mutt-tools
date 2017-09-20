@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+
+############################################################
+# mutt_send
+#
+# This script acts as a proxy between mutt and the mail
+# delivery program and handles tasks such as marking mails
+# as replied.
+#
+# License: GPLv3
+#
+# (c) Till Smejkal - till.smejkal+mutttools@ossmail.de
+############################################################
+
+# Global varibles
+TEMP_DIR=${XDG_RUNTIME_DIR:-/tmp}/mutt/send
+
+# Helper functions
+function usage() {
+    cat << EOF
+mutt_send [OPTIONS] SENDMAIL [SENDMAIL OPTIONS]
+
+Proxy for sendmail which will handle various additional tasks
+such as marking mails as replied.
+
+Options:
+    --help
+    -h      Print this help message.
+
+SENDMAIL    The sendmail binary that should be used.
+SENDMAIL OPTIONS
+            Additional options that should be forwarded to the
+            used sendmail binary.
+EOF
+}
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    usage
+    exit 0
+elif [[ $# -lt 1 ]]; then
+    echo -en "1 argument expected, $# given.\n\n"
+    usage
+    exit 1
+fi
+
+_mail_content=$(cat)
+_sendmail=$1
+
+shift
+
+if ! command -V "$_sendmail" &>/dev/null; then
+    # The first argument that we got is *not* an executable binary
+    echo -ne "$_sendmail is not executable.\n\n"
+    usage
+    exit 1
+fi
+
+# -- pre processing --
+_from=$(grep "From: " <<< $_mail_content | sed 's/From: \(.*\)/\1/')
+_replied_to=$(grep "In-Reply-To:" <<< $_mail_content | sed 's/In-Reply-To: <\(.*\)>/\1/')
+
+# -- send mail --
+$_sendmail "$@" <<< $_mail_content
+_exit_code=$?
+
+# -- post processing --
+if [ $_exit_code -eq 0 ]; then
+    # The send was successful. Let's do the post processing.
+
+    # Mark messages as relied-to
+    if [ ! -z $_relied_to ]; then
+        notmuch tag +replied id:$_replied_to
+    fi
+fi
+
+cat << EOF >> ~/mutt_send.log
+-> $(date) -- $$ <-
+--- Mail content ---
+$_mail_content
+--- Detected Data ---
+From: $_from
+In-Reply-To: $_replied_to
+--- Sendmail ---
+Binary: $_sendmail
+Args: $@
+Exit Code: $_exit_code
+
+EOF
+
+# -- exit --
+exit $_exit_code
