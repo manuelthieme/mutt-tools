@@ -1,6 +1,6 @@
 # Mutt Tools
 
-A collection of useful tools which I use in conjunction with my Mutt setu.
+A collection of useful tools which I use in conjunction with my Mutt setup.
 
 ## mutt_profile
 
@@ -24,15 +24,21 @@ directory structure to configure my Mutt, which looks as follows:
      |    |        |-> mailboxes
      |    |        |-> maillinglists
      |-> common
-          |->     general
-          |->     colors
-          |->     keybindings
+     |    |->     general
+     |    |->     colors
+     |    |->     keybindings
+     |-> foldertypes
+          |->     default
+          |->     normal
+          |->     mailinglists
 
 The files in the profile directory contain the mode depending settings and load
 additional files from the common directory. The files in the account
 directories contain the corresponding settings for the account such as mail
 address, signature, and headers. The config file in the base directory sets up the
-directories and then loads the mode and account settings.
+directories and then loads the mode and account settings. In the foldertypes directory
+one can define various settings for special types of folders (e.g. mailinglists) which
+can then be loaded via folder-hooks.
 
 The `mutt_profile` script adapts the main configuration file and then starts
 Mutt with the correct settings.
