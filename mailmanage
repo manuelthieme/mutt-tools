@@ -54,6 +54,6 @@ elif [[ ! -e $_file ]]; then
     exit 2
 else
     while read mailbox days; do
-        mailmanage delete -k $days $_accountName $mailbox
+        mmanage delete -k $days $_accountName $mailbox
     done < $_file
 fi
