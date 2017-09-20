@@ -70,3 +70,8 @@ cat ${_in_file} \
     | sed 's/.*\(".*"\)/mailboxes \1/' \
     | sed "s/${_account}_lists/${_account}/" \
     >> ${_out_file}
+
+# Sort everything one last time removing also duplicates
+cp ${_out_file} "${_out_file}_sort" && \
+    cat "${_out_file}_sort" | sort -u > ${_out_file} && \
+    rm -f "${_out_file}_sort"
