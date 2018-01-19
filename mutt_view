@@ -12,7 +12,7 @@
 ############################################################
 
 # Global variables
-TEMP_DIR=${XDG_RUNTIME_DIR}/mutt/view
+TEMP_DIR=${XDG_RUNTIME_DIR:-/tmp}/mutt/view
 
 # Helper functions
 function usage() {
