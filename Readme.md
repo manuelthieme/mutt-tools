@@ -64,6 +64,15 @@ This script will act as a proxy between Mutt in the compose profile and the actu
 binary. The purpose of this script is to handle various auxiliary tasks such as marking a mail
 as replied-to, logging and other similar things.
 
+
+## mutt_addresses
+
+This script is intended to work as an address book for mutt. It can query the notmuch mail
+indexing tool to retrieve mail addresses with the given search string. Hence, this script can
+be used as a drop-in replacement for mutt's 'query\_command' setting and thus replace tools
+such as abook.
+
+
 ## mailboxsplit
 
 I wrote this script to be able to extract all mailboxes belonging to one account from the

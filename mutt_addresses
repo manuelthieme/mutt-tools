@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+
+############################################################
+# mutt_addresses
+#
+# Script which can query the notmuch database for mail addresses.
+# This script can be plugged into mutt's query_command and hence
+# work as an replacement for abook or other address book tools.
+#
+# License: GPLv3
+#
+# (c) Till Smejkal - till.smejkal+mutttools@ossmail.de
+############################################################
+
+from notmuch import Database, Query
+from argparse import ArgumentParser
+from email.utils import parseaddr, formataddr
+
+import sys
+import re
+
+
+def parse_ignore_patterns(ifile):
+    patterns = ifile.read().splitlines()
+
+    ignore = []
+    unignore = []
+
+    for pat in patterns:
+        if pat.startswith("#"):
+            continue
+        elif len(pat) == 0:
+            continue
+        elif pat.startswith("!"):
+            unignore.append(re.compile(pat[1:]))
+        else:
+            ignore.append(re.compile(pat))
+
+    return { "ignore" : ignore, "unignore" : unignore }
+
+def ignore_address(name, email, patterns):
+    ignore = False
+    for ipat in patterns["ignore"]:
+        if ipat.search(name) is not None or \
+                ipat.search(email) is not None:
+            ignore = True
+            break
+
+    if ignore:
+        for upat in patterns["unignore"]:
+            if upat.search(name) is not None or \
+                    upat.search(email) is not None:
+                ignore = False
+                break
+
+    return ignore
+
+def run():
+    args = ArgumentParser("mutt_addresses")
+    args.add_argument("-c","--configfile", action="store", type=str, help="The notmuch configuration file.",
+            dest="notmuch_config", default=None)
+    args.add_argument("-i","--ignorefile", action="store", type=str, help="The file with mails that should be ignored.",
+            dest="ignore_file", default=None)
+    args.add_argument("search", action="store", type=str, help="The address that should be searched for.")
+
+    parsed_args = args.parse_args()
+
+    notmuch_config = parsed_args.notmuch_config
+    ignore_file = parsed_args.ignore_file
+    search_term = parsed_args.search
+
+    # Connect to notmuch
+    try:
+        notmuch_db = Database(notmuch_config)
+    except:
+        print("Failed to connect to notmuch. Did you create a notmuch database?")
+        sys.exit(1)
+
+    # Read in the ignore patterns
+    patterns = { "ignore" : [], "unignore" : [] }
+    if ignore_file is not None:
+        try:
+            with open(ignore_file, "r") as ifile:
+                patterns = parse_ignore_patterns(ifile)
+        except IOError:
+            print("Failed to open ignore file.")
+
+    addresses = set()
+
+    try:
+        from_q = Query(notmuch_db, "from:/{}/".format(search_term))
+        for m in list(from_q.search_messages()):
+            addresses.add(m.get_header("From"))
+    except:
+        print("Failed to query notmuch database.")
+        sys.exit(1)
+
+    final_addresses = []
+    for a in addresses:
+        name, email = parseaddr(a)
+
+        # Do some filtering on the names
+        if not ignore_address(name, email, patterns):
+            final_addresses.append((name, email))
+
+
+    print("Email\tName")
+    for name, email in final_addresses:
+        print("{}\t{}".format(email, name))
+
+if __name__ == "__main__":
+    run()
