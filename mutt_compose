@@ -12,7 +12,7 @@
 ############################################################
 
 # Global variables
-TEMP_DIR=${XDG_RUNTIME_DIR}/mutt/compose
+TEMP_DIR=${XDG_RUNTIME_DIR:-/tmp}/mutt/compose
 
 # Helper functions
 function usage() {
