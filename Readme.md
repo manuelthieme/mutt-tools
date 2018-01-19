@@ -57,9 +57,10 @@ This script is a small starter script which can be used to execute viewers for a
 detached from the actual Mutt instance. The script will copy the file and then run the viewer
 program in the background so that Mutt can be used as if nothing happened.
 
+
 ## mutt_send
 
-This script will act as a proxy between the Mutt in the compose profile and the actual sendmail
+This script will act as a proxy between Mutt in the compose profile and the actual sendmail
 binary. The purpose of this script is to handle various auxiliary tasks such as marking a mail
 as replied-to, logging and other similar things.
 

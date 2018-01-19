@@ -12,7 +12,7 @@
 # (c) Till Smejkal - till.smejkal+mutttools@ossmail.de
 ############################################################
 
-# Global varibles
+# Global variables
 TEMP_DIR=${XDG_RUNTIME_DIR:-/tmp}/mutt/send
 
 # Helper functions
@@ -33,6 +33,24 @@ SENDMAIL OPTIONS
             used sendmail binary.
 EOF
 }
+
+function log() {
+    echo $@ >&3
+}
+
+# -- setup --
+mkdir -p ${TEMP_DIR}
+
+# create pipe for logging to journald
+PIPE=$(mktemp -up ${TEMP_DIR})
+mkfifo $PIPE
+
+systemd-cat -t $(basename $0) < $PIPE &
+if [ $? -ne 0 ]; then
+    echo "Failed to setup systemd logging" >> ~/send_log
+fi
+
+exec 3>$PIPE
 
 if [[ "$1" == "-h" || "$1" == "--help" ]]; then
     usage
@@ -56,8 +74,9 @@ if ! command -V "$_sendmail" &>/dev/null; then
 fi
 
 # -- pre processing --
-_from=$(grep "From: " <<< $_mail_content | sed 's/From: \(.*\)/\1/')
-_replied_to=$(grep "In-Reply-To:" <<< $_mail_content | sed 's/In-Reply-To: <\(.*\)>/\1/')
+_from=$(grep "^From: " <<< $_mail_content | sed 's/From: \(.*\)/\1/')
+_to=$(grep "^To: " <<< $_mail_content | sed 's/To: \(.*\)/\1/')
+_replied_to=$(grep "^In-Reply-To:" <<< $_mail_content | sed 's/In-Reply-To: <\(.*\)>/\1/')
 
 # -- send mail --
 $_sendmail "$@" <<< $_mail_content
@@ -65,27 +84,26 @@ _exit_code=$?
 
 # -- post processing --
 if [ $_exit_code -eq 0 ]; then
-    # The send was successful. Let's do the post processing.
-
-    # Mark messages as relied-to
-    if [ ! -z $_relied_to ]; then
-        notmuch tag +replied id:$_replied_to
-    fi
+    _result="Successfully($_exit_code) sent"
+else
+    _result="Failed($_exit_code) to send"
 fi
 
-cat << EOF >> ~/mutt_send.log
--> $(date) -- $$ <-
---- Mail content ---
-$_mail_content
---- Detected Data ---
-From: $_from
-In-Reply-To: $_replied_to
---- Sendmail ---
-Binary: $_sendmail
-Args: $@
-Exit Code: $_exit_code
+log "$_result mail to $_to using [$_sendmail $@]."
 
-EOF
+if [ $_exit_code -eq 0 ]; then
+    # Mark messages as replied-to if necessary.
+    if [ ! -z "$_replied_to" ]; then
+        # Check if we need to update the notmuch database first.
+        if [ -z "$(notmuch search id:$_replied_to)" ]; then
+            notmuch new
+        fi
+
+        notmuch tag +replied "id:$_replied_to"
+
+        log "Tagged mail ($_replied_to) as replied-to."
+    fi
+fi
 
 # -- exit --
 exit $_exit_code
