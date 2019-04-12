@@ -13,8 +13,11 @@
 ############################################################
 
 from notmuch import Database, Query
-from argparse import ArgumentParser
-from email.utils import parseaddr, formataddr
+from argparse import ArgumentParser, REMAINDER
+from email.utils import parseaddr, getaddresses
+from functools import partial
+
+from Levenshtein import jaro_winkler as jw_distance
 
 import sys
 import re
@@ -55,19 +58,28 @@ def ignore_address(name, email, patterns):
 
     return ignore
 
+def sort_addresses(en_pair, search_string):
+    email, name = en_pair
+
+    if not name:
+        return 0
+    else:
+        return max([jw_distance(search_string, email), jw_distance(search_string, name)])
+
 def run():
     args = ArgumentParser("mutt_addresses")
     args.add_argument("-c","--configfile", action="store", type=str, help="The notmuch configuration file.",
             dest="notmuch_config", default=None)
     args.add_argument("-i","--ignorefile", action="store", type=str, help="The file with mails that should be ignored.",
             dest="ignore_file", default=None)
-    args.add_argument("search", action="store", type=str, help="The address that should be searched for.")
+    args.add_argument("search", nargs=REMAINDER, help="The search term that should used to query the database.")
 
     parsed_args = args.parse_args()
 
     notmuch_config = parsed_args.notmuch_config
     ignore_file = parsed_args.ignore_file
-    search_term = parsed_args.search
+    search_terms = [str(s) for s in parsed_args.search]
+    search_string = ' '.join(search_terms)
 
     # Connect to notmuch
     try:
@@ -88,24 +100,75 @@ def run():
     addresses = set()
 
     try:
-        from_q = Query(notmuch_db, "from:/{}/".format(search_term))
-        for m in list(from_q.search_messages()):
-            addresses.add(m.get_header("From"))
-    except:
-        print("Failed to query notmuch database.")
+        nm_query = "from:\"/{0}/\" or to:\"/{0}/\"".format(search_string)
+        query = Query(notmuch_db, nm_query)
+
+        for m in list(query.search_messages()):
+            for h in ["From", "To", "Cc", "Bcc"]:
+                header = m.get_header(h)
+                if not header:
+                    continue
+
+                for name, email in getaddresses([header]):
+                    if re.search(".*".join(search_terms), name, re.IGNORECASE) is not None or \
+                            re.search(".*".join(search_terms), email, re.IGNORECASE) is not None:
+                        if '+' in email:
+                            continue
+
+                        addresses.add((name, email.lower()))
+
+    except Exception as e:
+        print("Failed to query notmuch database: {}".format(str(e)))
         sys.exit(1)
 
-    final_addresses = []
-    for a in addresses:
-        name, email = parseaddr(a)
-
+    # Remove addresses that should be ignored
+    addresses_not_ignored = []
+    for name, email in addresses:
         # Do some filtering on the names
         if not ignore_address(name, email, patterns):
-            final_addresses.append((name, email))
+            addresses_not_ignored.append((name, email))
 
+    addresses_reduced = {}
+    for name, email in addresses_not_ignored:
+        if email in addresses_reduced:
+            old_name = addresses_reduced[email]
+
+            if not old_name:
+                addresses_reduced[email] = name
+                continue
+
+            # Let's use some heuristics to decide which display name to use for this email
+            if '@' in name:
+                # The new display name contains a mail address. Only use it if we didn't have a name beforehand -- done above.
+                pass
+            elif '\'' in name:
+                # The new name contains a ' symbol. Only use it if don't have a name yet -- done above -- or the old name is an email.
+                if '@' in old_name:
+                    addresses_reduced[email] = name
+            else:
+                # The new name is just a normal name.
+                # Use it if the current name is a mail or has ' symbols
+                if '@' in old_name or '\'' in old_name:
+                    addresses_reduced[email] = name
+                else:
+                    # In any other case we have to compare the two names with each other
+                    # Use the new display name if the old one is a substring of it.
+                    if old_name in name:
+                        addresses_reduced[email] = name
+                    # By assuming that the search term is what we want as display name, use the name which is closer to the search term
+                    elif jw_distance(search_string, old_name) < jw_distance(search_string, name):
+                        addresses_reduced[email] = name
+        else:
+            addresses_reduced[email] = name
+
+    addresses_sorted = []
+    # Sort the addresses to display the best fit first
+    addresses_sorted = sorted([(n, e) for e, n in addresses_reduced.items()],
+            key=partial(sort_addresses, search_string=search_string),
+            reverse=True)
 
     print("Email\tName")
-    for name, email in final_addresses:
+    for name, email in addresses_sorted:
         print("{}\t{}".format(email, name))
 
 if __name__ == "__main__":
