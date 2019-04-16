@@ -50,8 +50,10 @@ if [[ ! -d $_account_dir ]]; then
     echo "The account ${_account} does not seem to exist."
     exit 2
 elif [[ ! -e $_file ]]; then
-    echo "The account ${_account} does not seem to have mailing lists configured."
+    echo "The account ${_account} does not seem to not have a 'mailinglists' file."
     exit 2
+elif [ ! -s $_file ]; then
+    echo "There are no mailing lists configured for ${_account}."
 else
     while read mailbox days; do
         mmanage delete -k $days $_account $mailbox
