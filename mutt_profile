@@ -11,7 +11,7 @@
 ############################################################
 
 # Global variables
-CONFIG_DIR=${HOME}/.config/mutt
+CONFIG_DIR=${HOME}/.mutt
 TEMP_DIR=${XDG_RUNTIME_DIR}/mutt/profiles
 
 # Helper functions
