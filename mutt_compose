@@ -56,7 +56,7 @@ cp ${_mail} ${_tmp_mail}
 # Run the compose instance of mutt in the background and delete
 # everything after the mail is sent.
 (
-    urxvt -name Compose -title "Compose Mail - ${_title}" \
+    st -n Compose -t "Compose Mail - ${_title}" \
         -e mutt_profile --no-title compose ${_account} -H ${_tmp_mail} 2>/dev/null
     rm -f $_tmp_mail
 ) &
