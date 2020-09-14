@@ -47,7 +47,7 @@ fi
 _viewer="$1"
 shift
 
-while [ "$#" -ge "1" ]; do
+while [ "$#" -gt "1" ]; do
     _options="$_options $1"
     shift
 done
@@ -55,13 +55,13 @@ done
 _file=$1
 
 # Create a temporary copy of the file.
-mkdir -p ${TEMP_DIR}
-_tmp_dir=$(mktemp -d -p ${TEMP_DIR})
-cp "$_file" ${_tmp_dir}
+mkdir -p "${TEMP_DIR}"
+_tmp_dir=$(mktemp -d -p "${TEMP_DIR}")
+cp "$_file" "${_tmp_dir}"
 
 # Run the viewer in the background and delete everything
 # when the viewer is done.
 (
-    "$_viewer" $_options "${_tmp_dir}/$(basename $_file)" 2>/dev/null
+    "$_viewer" $_options "${_tmp_dir}/$(basename "$_file")" 2>/dev/null
     rm -rf "$_tmp_dir"
 ) &
