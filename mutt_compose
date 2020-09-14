@@ -57,6 +57,6 @@ cp ${_mail} ${_tmp_mail}
 # everything after the mail is sent.
 (
     st -n Compose -t "Compose Mail - ${_title}" \
-        -e mutt_profile --no-title compose ${_account} -H ${_tmp_mail} 2>/dev/null
+        -e zsh -ic "mutt_profile --no-title compose ${_account} -H ${_tmp_mail} 2>/dev/null"
     rm -f $_tmp_mail
 ) &
